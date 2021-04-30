@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>焦点轮播图</title>
+	<style type="text/css">
+		/*去除内边距,没有链接下划线*/
+		* {
+			margin: 0;
+			padding: 0;
+			text-decoration: none;
+		}
+		/*让<body有20px的内边距*/
+		body {
+			padding: 20px;
+		}
+		/*最外围的div*/
+		#container {
+			width: 600px;
+			height: 400px;
+			overflow: hidden;
+			position: relative;/*相对定位*/
+			margin: 0 auto;
+		}
+		/*包含所有图片的<div>*/
+
+		#list {
+			width: 4200px; /*7张图片的宽: 7*600 */
+			height: 400px;
+			position: absolute; /*绝对定位*/
+			z-index: 1;
+
+		}
+		/*所有的图片<img>*/
+		#list img {
+			float: left;/*浮在左侧*/
+		}
+		/*包含所有圆点按钮的<div>*/
+		#pointsDiv {
+			position: absolute;
+			height: 10px;
+			width: 100px;
+			z-index: 2;
+			bottom: 20px;
+			left: 250px;
+		}
+		/*所有的圆点<span>*/
+
+		#pointsDiv span {
+			cursor: pointer;
+			float: left;
+			border: 1px solid #fff;
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: #333;
+			margin-right: 5px;
+		}
+		/*第一个<span>*/
+
+		#pointsDiv .on {
+			background: orangered;
+		}
+		/*切换图标<a>*/
+
+		.arrow {
+			cursor: pointer;
+			display: none;
+			line-height: 39px;
+			text-align: center;
+			font-size: 36px;
+			font-weight: bold;
+			width: 40px;
+			height: 40px;
+			position: absolute;
+			z-index: 2;
+			top: 180px;
+			background-color: RGBA(0, 0, 0, 0.3);
+			color: #fff;
+		}
+		/*鼠标移到切换图标上时*/
+		.arrow:hover {
+			background-color: RGBA(0, 0, 0, 0.7);
+		}
+		/*鼠标移到整个div区域时*/
+		#container:hover .arrow {
+			display: block;/*显示*/
+		}
+		/*上一个切换图标的左外边距*/
+		#prev {
+			left: 20px;
+		}
+		/*下一个切换图标的右外边距*/
+		#next {
+			right: 20px;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="container">
+		<div id="list" style="left: -600px;">
+			<img src="img/5.jpg" alt="5" />
+			<img src="img/1.jpg" alt="1" />
+			<img src="img/2.jpg" alt="2" />
+			<img src="img/3.jpg" alt="3" />
+			<img src="img/4.jpg" alt="4" />
+			<img src="img/5.jpg" alt="5" />
+			<img src="img/1.jpg" alt="1" />
+		</div>
+		<div id="pointsDiv">
+			<span index="1" class="on"></span>
+			<span index="2"></span>
+			<span index="3"></span>
+			<span index="4"></span>
+			<span index="5"></span>
+		</div>
+		<a href="javascript:;" id="prev" class="arrow">&lt;</a>
+		<a href="javascript:;" id="next" class="arrow">&gt;</a>
+	</div>
+
+	<script src="./js/jquery.1.10.2.js"></script>
+	<script type="text/javascript">
+		/*
+		 功能说明:
+			 1. 点击向右(左)的图标, 平滑切换到下(上)一页
+			 2. 无限循环切换
+			 3. 每隔3s自动滑动到下一页
+			 4. 鼠标进入停止自动翻页, 移出开启自动翻页
+			 5. 切换页面时, 下面的圆点也同步更新
+			 6. 点击圆点图标切换到对应的页
+		 */
+	$(function () {
+//	    显示容器     移入移出开启或停止自动轮播
+		var $container = $('#container');
+//	    图片容器     通过操作图片容器的left值 实现图片的切换
+		var $list = $('#list');
+//	    左右按钮      点击左右按钮  切换一张图片
+		var $prev = $('#prev');
+		var $next = $('#next');
+//	    小圆点       点击小圆点切换到执行图片页    高亮切换
+		var $points = $('#pointsDiv span');
+//		定义图片宽度
+		var PAGE_WIDTH = 600;
+//		定义动画总时长
+		var time = 3000;
+//		定义动画帧时长
+		var itemTime = 30;
+//		定义实际显示张数
+		var showNum = $points.length;
+//		初始化当前索引
+		var index = 0;
+//		定义标识变量 记录当前动画执行状态
+		var isMovIng = false;
+
+//		给左右按钮绑定单击事件
+		$prev.click(function () {
+		    nextPage(false);
+		});
+		$next.click(function () {
+            nextPage(true);
+		});
+		$points.click(function () {
+		   var targetIndex = $(this).index();
+			nextPage(targetIndex);
+		});
+		var autoTimer = setInterval(function () {
+			nextPage(true);
+		},3000);
+		$container.hover(function () {
+			clearInterval(autoTimer);
+		},function () {
+			autoTimer = setInterval(function () {
+			    nextPage(true)
+			},3000)
+		});
+//		翻页函数
+//		next形参
+//			1：true  说明点击的是next按钮  图片切换到下一张   图片容器应该向左移动  图片容器的left值应该在当前基础之上-600
+//			2：false 说明点击的是prev按钮  图片切换到上一张   图片容器应该向右移动  图片容器的left值应该在当前基础之上+600
+//			3：索引值  说明点击的是小圆点  我们需要根据当前点击的索引 和当前显示的索引去计算究竟有几张图片的间隔
+		function nextPage(next) {
+		    if(isMovIng){
+		        return
+		    }
+		    isMovIng = true;
+//		    参数类型判断
+			if(typeof next  === 'boolean'){
+//			总偏移
+                var offset = next ? -PAGE_WIDTH : PAGE_WIDTH;
+			}else{
+			    var offset = -(next - index) * PAGE_WIDTH;
+			}
+
+//			计算单次偏移 = 总偏移 / （ 总时长 / 帧时长 ）
+			var itemOffset = offset / ( time / itemTime );
+//			获取当前list的left值    因为轮播的移动一定是根据当前的位置 去增加偏移
+			var left = $list.position().left;
+//			计算目的地的left值 = 当前了left值 + 总偏移
+			var targetLeft = left + offset;
+			var timer = setInterval(function () {
+				left += itemOffset;
+
+//				如果当前位置 = 目的地的位置  说明本次移动图片结束
+				if(left === targetLeft){
+				    clearInterval(timer);
+				    isMovIng = false;
+
+//				    首尾相接
+					if(left === 0){
+//					    说明当前图片切换到了假5  我们要将图片切换到真五  实际排列的倒数第二张
+//						倒数第二张left值 = 实际显示图片张数 * 图片宽度
+						left = -showNum * PAGE_WIDTH;
+					}else if(left === -(showNum + 1) * PAGE_WIDTH){
+						left = -PAGE_WIDTH;
+					}
+
+				}
+
+//				将计算后的left值 赋值给list
+				$list.css('left',left);
+			},itemTime);
+            upDate(next);
+		}
+//		小圆点高亮切换
+		function upDate(next) {
+//		    参数类型判断
+			if(typeof next === 'boolean'){
+                var targetIndex = next ? index + 1 : index - 1;
+			}else{
+			    var targetIndex = next;
+			}
+
+//			边界值判断：首尾相接
+			if(targetIndex < 0){
+//				能够进入这个if当中 则说明当前图片显示第一页 且又点击了prev按钮  向上翻页
+				targetIndex = showNum - 1;
+			}else if(targetIndex > showNum - 1){
+			    targetIndex = 0;
+			}
+
+//			index 永远对应取消高亮的元素  targetIndex永远对应增加高亮的元素
+			$points.eq(index).removeClass('on');
+			$points.eq(targetIndex).addClass('on');
+
+//			索引更新
+			index = targetIndex;
+		  
+		}
+		
+	})
+	</script>
+</body>
+
+</html>
